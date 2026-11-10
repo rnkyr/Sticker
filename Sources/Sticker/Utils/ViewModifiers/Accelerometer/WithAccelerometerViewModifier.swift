@@ -13,7 +13,13 @@ private struct WithAccelerometerViewModifier<ModifiedContent: View>: ViewModifie
     let updateInterval: TimeInterval
     let makeView: (AnyView, AccelerometerAttitude) -> ModifiedContent
 
-    private let motionManager = CMMotionManager()
+    /// `@State`, not a stored `let`: this modifier is a struct built inside a `body`, so a plain
+    /// property mints a fresh `CMMotionManager` on every evaluation. The copy that received
+    /// `onAppear` starts updates and CoreMotion retains it, while the `onDisappear` that would
+    /// stop it belongs to whichever copy SwiftUI considers current — so managers accumulate, each
+    /// still sampling at `updateInterval` for the life of the process. `@State` is keyed to the
+    /// view's identity, so the same manager is started and stopped.
+    @State private var motionManager = CMMotionManager()
 
     @State private var attitude: AccelerometerAttitude = .init()
     @State private var referenceAttitude: AccelerometerAttitude?
